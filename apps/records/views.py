@@ -61,3 +61,11 @@ class RecordDetailView(APIView):
 			return Response({'detail': IsPendingRecord.message}, status=status.HTTP_403_FORBIDDEN)
 		delete_record(record=record)
 		return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MyRecordListView(APIView):
+	permission_classes = (IsAuthenticated,)
+
+	def get(self, request):
+		queryset = request.user.records.all()
+		return Response(RecordSerializer(queryset, many=True, context={'request': request}).data)
