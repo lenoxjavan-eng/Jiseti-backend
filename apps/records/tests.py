@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from .models import Record
+from .serializers import RecordSerializer
 
 
 class RecordModelTests(TestCase):
@@ -16,3 +17,28 @@ class RecordModelTests(TestCase):
 
 		self.assertEqual(record.status, Record.Status.PENDING)
 		self.assertEqual(str(record), 'Broken road (Intervention)')
+
+
+class RecordSerializerTests(TestCase):
+	def test_rejects_incomplete_location(self):
+		serializer = RecordSerializer(data={
+			'title': 'Polluted river',
+			'description': 'Waste is being discharged into the river.',
+			'type': Record.RecordType.RED_FLAG,
+			'latitude': '-1.286389',
+		})
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn('non_field_errors', serializer.errors)
+
+	def test_rejects_out_of_range_coordinates(self):
+		serializer = RecordSerializer(data={
+			'title': 'Polluted river',
+			'description': 'Waste is being discharged into the river.',
+			'type': Record.RecordType.RED_FLAG,
+			'latitude': '91.000000',
+			'longitude': '36.821946',
+		})
+
+		self.assertFalse(serializer.is_valid())
+		self.assertIn('latitude', serializer.errors)
