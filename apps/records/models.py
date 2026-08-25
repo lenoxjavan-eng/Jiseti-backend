@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -12,7 +13,7 @@ class Record(models.Model):
 		REJECTED = 'rejected', 'Rejected'
 		RESOLVED = 'resolved', 'Resolved'
 
-	user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='records')
+	user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='records')
 	title = models.CharField(max_length=255)
 	description = models.TextField()
 	type = models.CharField(max_length=20, choices=RecordType.choices)
