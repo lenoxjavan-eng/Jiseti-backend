@@ -6,3 +6,12 @@ class IsOwnerOrAdmin(BasePermission):
 
 	def has_object_permission(self, request, view, obj):
 		return bool(request.user and request.user.is_staff) or obj.user_id == request.user.id
+
+
+class IsPendingRecord(BasePermission):
+	"""Only pending records may be edited or deleted by their owner."""
+
+	message = 'Only pending records can be modified or deleted.'
+
+	def has_object_permission(self, request, view, obj):
+		return obj.status == obj.Status.PENDING
