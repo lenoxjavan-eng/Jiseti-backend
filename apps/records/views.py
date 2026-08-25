@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -5,6 +6,8 @@ from rest_framework.views import APIView
 
 from .serializers import RecordSerializer
 from .services import create_record
+from .models import Record
+from .permissions import IsOwnerOrAdmin
 
 
 class RecordListCreateView(APIView):
@@ -22,3 +25,16 @@ class RecordListCreateView(APIView):
 		serializer.is_valid(raise_exception=True)
 		record = create_record(user=request.user, **serializer.validated_data)
 		return Response(RecordSerializer(record, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+
+class RecordDetailView(APIView):
+	permission_classes = (IsAuthenticated, IsOwnerOrAdmin)
+
+	def get_object(self, pk):
+		record = get_object_or_404(Record, pk=pk)
+		self.check_object_permissions(self.request, record)
+		return record
+
+	def get(self, request, pk):
+		record = self.get_object(pk)
+		return Response(RecordSerializer(record, context={'request': request}).data)
