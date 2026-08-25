@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from rest_framework.test import APIClient
 
 from .models import Record
 from .serializers import RecordSerializer
@@ -42,3 +43,44 @@ class RecordSerializerTests(TestCase):
 
 		self.assertFalse(serializer.is_valid())
 		self.assertIn('latitude', serializer.errors)
+
+
+class RecordApiTests(TestCase):
+	def setUp(self):
+		self.client = APIClient()
+		self.user = get_user_model().objects.create_user(username='owner', password='pass12345')
+		self.other_user = get_user_model().objects.create_user(username='other', password='pass12345')
+		self.client.force_authenticate(self.user)
+		self.payload = {
+			'title': 'Damaged bridge',
+			'description': 'The bridge railing is damaged.',
+			'type': Record.RecordType.RED_FLAG,
+			'latitude': '-1.286389',
+			'longitude': '36.821946',
+		}
+
+	def test_owner_can_create_and_list_records(self):
+		create_response = self.client.post('/api/records/', self.payload, format='json')
+		list_response = self.client.get('/api/records/my-records/')
+
+		self.assertEqual(create_response.status_code, 201)
+		self.assertEqual(create_response.data['status'], Record.Status.PENDING)
+		self.assertEqual(list_response.status_code, 200)
+		self.assertEqual(len(list_response.data), 1)
+
+	def test_owner_cannot_mutate_non_pending_record(self):
+		record = Record.objects.create(user=self.user, status=Record.Status.RESOLVED, **self.payload)
+
+		response = self.client.patch(f'/api/records/{record.pk}/', {'title': 'Changed'}, format='json')
+
+		self.assertEqual(response.status_code, 403)
+		record.refresh_from_db()
+		self.assertEqual(record.title, self.payload['title'])
+
+	def test_other_user_cannot_view_record(self):
+		record = Record.objects.create(user=self.user, **self.payload)
+		self.client.force_authenticate(self.other_user)
+
+		response = self.client.get(f'/api/records/{record.pk}/')
+
+		self.assertEqual(response.status_code, 403)
