@@ -25,3 +25,6 @@ class Record(models.Model):
 
 	class Meta:
 		ordering = ('-created_at',)
+
+	def __str__(self):
+		return f'{self.title} ({self.get_type_display()})'
