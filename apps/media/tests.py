@@ -1,6 +1,7 @@
 import tempfile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
@@ -13,7 +14,15 @@ from .models import Media
 class MediaApiTests(TestCase):
 	def setUp(self):
 		self.client = APIClient()
-		self.record = Record.objects.create(latitude='6.524379', longitude='3.379206')
+		self.user = get_user_model().objects.create_user(username='media-owner', password='pass12345')
+		self.record = Record.objects.create(
+			user=self.user,
+			title='Blocked drainage',
+			description='Drainage requires repair.',
+			type=Record.RecordType.INTERVENTION,
+			latitude='6.524379',
+			longitude='3.379206',
+		)
 		self.list_url = f'/api/records/{self.record.pk}/media/'
 
 	def test_upload_and_list_image(self):
