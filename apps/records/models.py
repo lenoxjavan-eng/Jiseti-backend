@@ -12,9 +12,15 @@ class Record(models.Model):
 		REJECTED = 'rejected', 'Rejected'
 		RESOLVED = 'resolved', 'Resolved'
 
+	user = models.ForeignKey('auth.User', on_delete=models.CASCADE, related_name='records')
+	title = models.CharField(max_length=255)
+	description = models.TextField()
+	type = models.CharField(max_length=20, choices=RecordType.choices)
+	status = models.CharField(max_length=24, choices=Status.choices, default=Status.PENDING)
 	latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 	longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
 
 	class Meta:
 		ordering = ('-created_at',)
