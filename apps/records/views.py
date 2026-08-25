@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .serializers import RecordSerializer
-from .services import create_record, update_record
+from .services import create_record, delete_record, update_record
 from .models import Record
 from .permissions import IsOwnerOrAdmin, IsPendingRecord
 
@@ -54,3 +54,10 @@ class RecordDetailView(APIView):
 		serializer.is_valid(raise_exception=True)
 		record = update_record(record=record, **serializer.validated_data)
 		return Response(RecordSerializer(record, context={'request': request}).data)
+
+	def delete(self, request, pk):
+		record = self.get_object(pk)
+		if not IsPendingRecord().has_object_permission(request, self, record):
+			return Response({'detail': IsPendingRecord.message}, status=status.HTTP_403_FORBIDDEN)
+		delete_record(record=record)
+		return Response(status=status.HTTP_204_NO_CONTENT)
