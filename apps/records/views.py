@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -12,6 +12,11 @@ from .permissions import IsOwnerOrAdmin, IsPendingRecord
 
 class RecordListCreateView(APIView):
 	permission_classes = (IsAuthenticated,)
+
+	def get_permissions(self):
+		if self.request.method == 'GET':
+			return [AllowAny()]
+		return super().get_permissions()
 
 	def get(self, request):
 		queryset = Record.objects.all()
