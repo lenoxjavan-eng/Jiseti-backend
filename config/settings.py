@@ -163,6 +163,8 @@ MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', BASE_DIR / 'media'))
 CORS_ALLOWED_ORIGINS = [
     origin.strip() for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if origin.strip()
 ]
+if 'https://jiseti-frontend.vercel.app' not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append('https://jiseti-frontend.vercel.app')
 CORS_ALLOW_CREDENTIALS = True
 
 if not DEBUG:
