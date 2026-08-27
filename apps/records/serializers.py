@@ -31,3 +31,20 @@ class StatusUpdateSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Record
 		fields = ('status',)
+
+
+class LocationSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Record
+		fields = ('latitude', 'longitude')
+
+	def validate(self, attrs):
+		latitude = attrs.get('latitude')
+		longitude = attrs.get('longitude')
+		if latitude is None or longitude is None:
+			raise serializers.ValidationError('Latitude and longitude must be supplied together.')
+		if not -90 <= latitude <= 90:
+			raise serializers.ValidationError({'latitude': 'Latitude must be between -90 and 90.'})
+		if not -180 <= longitude <= 180:
+			raise serializers.ValidationError({'longitude': 'Longitude must be between -180 and 180.'})
+		return attrs

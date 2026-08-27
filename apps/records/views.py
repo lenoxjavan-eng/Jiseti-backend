@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import RecordSerializer, StatusUpdateSerializer
+from .serializers import LocationSerializer, RecordSerializer, StatusUpdateSerializer
 from .services import create_record, delete_record, update_record, update_record_status
 from .models import Record
 from .permissions import IsOwnerOrAdmin, IsPendingRecord
@@ -14,10 +14,7 @@ class RecordListCreateView(APIView):
 	permission_classes = (IsAuthenticated,)
 
 	def get(self, request):
-		queryset = request.user.records.all()
-		if request.user.is_staff:
-			from .models import Record
-			queryset = Record.objects.all()
+		queryset = Record.objects.all()
 		return Response(RecordSerializer(queryset, many=True, context={'request': request}).data)
 
 	def post(self, request):
@@ -47,7 +44,8 @@ class RecordDetailView(APIView):
 
 	def _update(self, request, pk, *, partial):
 		record = self.get_object(pk)
-		self.check_object_permissions(request, record)
+		if record.user_id != request.user.id:
+			return Response({'detail': 'Only the record creator can modify it.'}, status=status.HTTP_403_FORBIDDEN)
 		if not IsPendingRecord().has_object_permission(request, self, record):
 			return Response({'detail': IsPendingRecord.message}, status=status.HTTP_403_FORBIDDEN)
 		serializer = RecordSerializer(record, data=request.data, partial=partial, context={'request': request})
@@ -57,6 +55,8 @@ class RecordDetailView(APIView):
 
 	def delete(self, request, pk):
 		record = self.get_object(pk)
+		if record.user_id != request.user.id:
+			return Response({'detail': 'Only the record creator can modify it.'}, status=status.HTTP_403_FORBIDDEN)
 		if not IsPendingRecord().has_object_permission(request, self, record):
 			return Response({'detail': IsPendingRecord.message}, status=status.HTTP_403_FORBIDDEN)
 		delete_record(record=record)
@@ -69,6 +69,24 @@ class MyRecordListView(APIView):
 	def get(self, request):
 		queryset = request.user.records.all()
 		return Response(RecordSerializer(queryset, many=True, context={'request': request}).data)
+
+
+class RecordLocationView(APIView):
+	permission_classes = (IsAuthenticated, IsOwnerOrAdmin)
+
+	def patch(self, request, pk):
+		record = get_object_or_404(Record, pk=pk)
+		self.check_object_permissions(request, record)
+		if record.user_id != request.user.id:
+			return Response({'detail': 'Only the record creator can modify it.'}, status=status.HTTP_403_FORBIDDEN)
+		if not IsPendingRecord().has_object_permission(request, self, record):
+			return Response({'detail': IsPendingRecord.message}, status=status.HTTP_403_FORBIDDEN)
+		serializer = LocationSerializer(record, data=request.data)
+		serializer.is_valid(raise_exception=True)
+		record.latitude = serializer.validated_data['latitude']
+		record.longitude = serializer.validated_data['longitude']
+		record.save(update_fields=('latitude', 'longitude', 'updated_at'))
+		return Response(RecordSerializer(record, context={'request': request}).data)
 
 
 class AdminRecordStatusView(APIView):

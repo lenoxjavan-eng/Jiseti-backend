@@ -1,5 +1,11 @@
 # Jiseti Backend
 
+## Authentication
+
+Use `POST /api/auth/register/`, `POST /api/auth/login/`, and
+`GET /api/auth/profile/`. Authenticated requests use the JWT access token as
+`Authorization: Bearer <token>`.
+
 ## Admin status management
 
 Authenticated staff users can change a record status with:

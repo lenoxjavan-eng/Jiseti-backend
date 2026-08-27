@@ -8,7 +8,7 @@ from .serializers import RecordSerializer
 
 class RecordModelTests(TestCase):
 	def test_record_defaults_to_pending(self):
-		user = get_user_model().objects.create_user(username='owner', password='pass12345')
+		user = get_user_model().objects.create_user(email='owner@example.com', password='pass12345')
 		record = Record.objects.create(
 			user=user,
 			title='Broken road',
@@ -48,8 +48,8 @@ class RecordSerializerTests(TestCase):
 class RecordApiTests(TestCase):
 	def setUp(self):
 		self.client = APIClient()
-		self.user = get_user_model().objects.create_user(username='owner', password='pass12345')
-		self.other_user = get_user_model().objects.create_user(username='other', password='pass12345')
+		self.user = get_user_model().objects.create_user(email='owner@example.com', password='pass12345')
+		self.other_user = get_user_model().objects.create_user(email='other@example.com', password='pass12345')
 		self.client.force_authenticate(self.user)
 		self.payload = {
 			'title': 'Damaged bridge',
@@ -67,6 +67,35 @@ class RecordApiTests(TestCase):
 		self.assertEqual(create_response.data['status'], Record.Status.PENDING)
 		self.assertEqual(list_response.status_code, 200)
 		self.assertEqual(len(list_response.data), 1)
+
+	def test_authenticated_users_can_list_all_records(self):
+		Record.objects.create(user=self.other_user, **self.payload)
+
+		response = self.client.get('/api/records/')
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(len(response.data), 1)
+
+	def test_staff_cannot_mutate_another_users_record(self):
+		admin = get_user_model().objects.create_user(email='admin@example.com', password='pass12345', is_staff=True)
+		record = Record.objects.create(user=self.user, **self.payload)
+		self.client.force_authenticate(admin)
+
+		response = self.client.patch(f'/api/records/{record.pk}/', {'title': 'Changed'}, format='json')
+
+		self.assertEqual(response.status_code, 403)
+
+	def test_owner_can_update_pending_record_location(self):
+		record = Record.objects.create(user=self.user, **self.payload)
+
+		response = self.client.patch(
+			f'/api/records/{record.pk}/location/',
+			{'latitude': '-1.300000', 'longitude': '36.900000'},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.data['latitude'], '-1.300000')
 
 	def test_owner_cannot_mutate_non_pending_record(self):
 		record = Record.objects.create(user=self.user, status=Record.Status.RESOLVED, **self.payload)
@@ -98,7 +127,7 @@ class RecordApiTests(TestCase):
 		self.assertEqual(record.status, Record.Status.PENDING)
 
 	def test_staff_can_update_record_status(self):
-		admin = get_user_model().objects.create_user(username='admin', password='pass12345', is_staff=True)
+		admin = get_user_model().objects.create_user(email='admin@example.com', password='pass12345', is_staff=True)
 		record = Record.objects.create(user=self.user, **self.payload)
 		self.client.force_authenticate(admin)
 
@@ -113,7 +142,7 @@ class RecordApiTests(TestCase):
 		self.assertEqual(record.status, Record.Status.UNDER_INVESTIGATION)
 
 	def test_status_update_rejects_unknown_status(self):
-		admin = get_user_model().objects.create_user(username='admin', password='pass12345', is_staff=True)
+		admin = get_user_model().objects.create_user(email='admin@example.com', password='pass12345', is_staff=True)
 		record = Record.objects.create(user=self.user, **self.payload)
 		self.client.force_authenticate(admin)
 

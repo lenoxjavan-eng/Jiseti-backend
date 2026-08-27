@@ -14,7 +14,8 @@ from .models import Media
 class MediaApiTests(TestCase):
 	def setUp(self):
 		self.client = APIClient()
-		self.user = get_user_model().objects.create_user(username='media-owner', password='pass12345')
+		self.user = get_user_model().objects.create_user(email='media-owner@example.com', password='pass12345')
+		self.client.force_authenticate(self.user)
 		self.record = Record.objects.create(
 			user=self.user,
 			title='Blocked drainage',
