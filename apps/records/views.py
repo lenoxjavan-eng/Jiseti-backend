@@ -1,11 +1,11 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import RecordSerializer
-from .services import create_record, delete_record, update_record
+from .serializers import RecordSerializer, StatusUpdateSerializer
+from .services import create_record, delete_record, update_record, update_record_status
 from .models import Record
 from .permissions import IsOwnerOrAdmin, IsPendingRecord
 
@@ -69,3 +69,14 @@ class MyRecordListView(APIView):
 	def get(self, request):
 		queryset = request.user.records.all()
 		return Response(RecordSerializer(queryset, many=True, context={'request': request}).data)
+
+
+class AdminRecordStatusView(APIView):
+	permission_classes = (IsAuthenticated, IsAdminUser)
+
+	def patch(self, request, pk):
+		record = get_object_or_404(Record, pk=pk)
+		serializer = StatusUpdateSerializer(record, data=request.data)
+		serializer.is_valid(raise_exception=True)
+		record = update_record_status(record=record, status=serializer.validated_data['status'])
+		return Response(RecordSerializer(record, context={'request': request}).data)

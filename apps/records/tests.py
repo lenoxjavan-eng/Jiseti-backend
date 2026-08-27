@@ -84,3 +84,43 @@ class RecordApiTests(TestCase):
 		response = self.client.get(f'/api/records/{record.pk}/')
 
 		self.assertEqual(response.status_code, 403)
+
+	def test_only_staff_can_update_record_status(self):
+		record = Record.objects.create(user=self.user, **self.payload)
+		response = self.client.patch(
+			f'/api/admin/records/{record.pk}/status/',
+			{'status': Record.Status.RESOLVED},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 403)
+		record.refresh_from_db()
+		self.assertEqual(record.status, Record.Status.PENDING)
+
+	def test_staff_can_update_record_status(self):
+		admin = get_user_model().objects.create_user(username='admin', password='pass12345', is_staff=True)
+		record = Record.objects.create(user=self.user, **self.payload)
+		self.client.force_authenticate(admin)
+
+		response = self.client.patch(
+			f'/api/admin/records/{record.pk}/status/',
+			{'status': Record.Status.UNDER_INVESTIGATION},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 200)
+		record.refresh_from_db()
+		self.assertEqual(record.status, Record.Status.UNDER_INVESTIGATION)
+
+	def test_status_update_rejects_unknown_status(self):
+		admin = get_user_model().objects.create_user(username='admin', password='pass12345', is_staff=True)
+		record = Record.objects.create(user=self.user, **self.payload)
+		self.client.force_authenticate(admin)
+
+		response = self.client.patch(
+			f'/api/admin/records/{record.pk}/status/',
+			{'status': 'closed'},
+			format='json',
+		)
+
+		self.assertEqual(response.status_code, 400)

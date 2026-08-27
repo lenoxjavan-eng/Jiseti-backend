@@ -15,3 +15,9 @@ def update_record(*, record, **validated_data):
 
 def delete_record(*, record):
 	record.delete()
+
+
+def update_record_status(*, record, status):
+	record.status = status
+	record.save(update_fields=('status', 'updated_at'))
+	return record

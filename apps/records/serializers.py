@@ -25,3 +25,9 @@ class RecordSerializer(serializers.ModelSerializer):
 		if longitude is not None and not -180 <= longitude <= 180:
 			raise serializers.ValidationError({'longitude': 'Longitude must be between -180 and 180.'})
 		return attrs
+
+
+class StatusUpdateSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Record
+		fields = ('status',)
