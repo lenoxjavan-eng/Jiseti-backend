@@ -5,14 +5,19 @@ from .models import Record
 
 class RecordSerializer(serializers.ModelSerializer):
 	user_id = serializers.IntegerField(source='user.id', read_only=True)
+	user_name = serializers.SerializerMethodField()
 
 	class Meta:
 		model = Record
 		fields = (
-			'id', 'user_id', 'title', 'description', 'type', 'status', 'latitude',
+			'id', 'user_id', 'user_name', 'title', 'description', 'type', 'status', 'latitude',
 			'longitude', 'created_at', 'updated_at',
 		)
 		read_only_fields = ('id', 'user_id', 'status', 'created_at', 'updated_at')
+
+	def get_user_name(self, obj):
+		name = f'{obj.user.first_name} {obj.user.last_name}'.strip()
+		return name or obj.user.email
 
 	def validate(self, attrs):
 		latitude = attrs.get('latitude', getattr(self.instance, 'latitude', None))
