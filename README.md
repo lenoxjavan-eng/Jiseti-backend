@@ -18,6 +18,9 @@ After the first deploy, open the service's **Shell** in Render and run
 `python manage.py createsuperuser`. The health check is available at
 `/health/`.
 
+Use the superuser email and password at `/admin/login` in the frontend to open
+the administrator dashboard and update report statuses.
+
 > Media uploads require persistent external storage (such as Cloudinary or
 > Amazon S3) for production. Render's normal web-service filesystem is erased
 > when the service is rebuilt or restarted, so uploaded files must not be
